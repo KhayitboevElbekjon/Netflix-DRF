@@ -8,7 +8,11 @@ from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import *
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.decorators import action
+from rest_framework.viewsets import ModelViewSet
+from rest_framework.decorators import action
 
+from rest_framework.response import Response
+from rest_framework import status,filters
 class HelloAPIView(APIView):
     def get(self,request):
         content={
@@ -22,39 +26,50 @@ class HelloAPIView(APIView):
             'malumot':data
         }
         return Response(content)
+class AktyorAPIView(ModelViewSet):
+    queryset=Aktyor.objects.all()
+    serializer_class=AkyorSerializer
+    def get_queryset(self):
+        name=self.request.query_params.get('qidirish')
+        if name is None or name =='':
+            natija=Aktyor.objects.all()
+        else:
+            natija=Aktyor.objects.filter(ism__contains=name)
+        return natija
 
-class AktyorAPIView(APIView):
-    def get(self,request):
-        akyorlar=Aktyor.objects.all()
-        serializer=AkyorSerializer(akyorlar,many=True)
-        return Response(serializer.data)
-    def post(self,request):
-        aktyor=request.data
-        seralizer=AkyorSerializer(data=aktyor)
-        if seralizer.is_valid():
-            Aktyor.objects.create(
-                ism=seralizer.validated_data.get('ism'),
-                tugulgan_yil=seralizer.validated_data.get('tugulgan_yil'),
-                jins=seralizer.validated_data.get('jins'),
-                davlat=seralizer.validated_data.get('davlat')
-            )
-            return Response(seralizer.data,status=status.HTTP_201_CREATED)
-        return Response(seralizer.errors,status=status.HTTP_400_BAD_REQUEST)  # agar kiritilgan data xato bolsa xatoni korsatadi
-
-class AktyorDetailView(APIView):
-    def get(self,request,son):
-        akyorlar = Aktyor.objects.get(id=son)
-        serializer=AkyorSerializer(akyorlar)
-        return Response(serializer.data)
-    def put(self,request,son):
-        aktyor=Aktyor.objects.get(id=son)
-        serializer=AkyorSerializer(aktyor,data=request.data)  # data=request.data yangi malumoti
-        if serializer.is_valid():
-            aktyor.ism=serializer.validated_data.get('ism')
-            aktyor.davlat=serializer.validated_data.get('davlat')
-            aktyor.save()
-            return Response(serializer.data,status=status.HTTP_202_ACCEPTED)
-        return Response(serializer.errors,status.HTTP_400_BAD_REQUEST)
+    filter_backends = [filters.OrderingFilter]
+    ordering_fields = ('tugulgan_yil', )
+#     def get(self,request):
+#         akyorlar=Aktyor.objects.all()
+#         serializer=AkyorSerializer(akyorlar,many=True)
+#         return Response(serializer.data)
+#     def post(self,request):
+#         aktyor=request.data
+#         seralizer=AkyorSerializer(data=aktyor)
+#         if seralizer.is_valid():
+#             Aktyor.objects.create(
+#                 ism=seralizer.validated_data.get('ism'),
+#                 tugulgan_yil=seralizer.validated_data.get('tugulgan_yil'),
+#                 jins=seralizer.validated_data.get('jins'),
+#                 davlat=seralizer.validated_data.get('davlat')
+#             )
+#             return Response(seralizer.data,status=status.HTTP_201_CREATED)
+#         return Response(seralizer.errors,status=status.HTTP_400_BAD_REQUEST)  # agar kiritilgan data xato bolsa xatoni korsatadi
+#
+# class AktyorDetailView(APIView):
+#     def get(self,request,son):
+#         akyorlar = Aktyor.objects.get(id=son)
+#         serializer=AkyorSerializer(akyorlar)
+#         return Response(serializer.data)
+#     def put(self,request,son):
+#         aktyor=Aktyor.objects.get(id=son)
+#         serializer=AkyorSerializer(aktyor,data=request.data)  # data=request.data yangi malumoti
+#         if serializer.is_valid():
+#             aktyor.ism=serializer.validated_data.get('ism')
+#             aktyor.davlat=serializer.validated_data.get('davlat')
+#             aktyor.save()
+#             return Response(serializer.data,status=status.HTTP_202_ACCEPTED)
+#         return Response(serializer.errors,status.HTTP_400_BAD_REQUEST)
 
 class TarifAPIView(APIView):
     def get(self,request):
@@ -114,11 +129,15 @@ class TaifDetailView(APIView):
 class KinoModelViewset(ModelViewSet):
     queryset=Kino.objects.all()
     serializer_class=KinoSerializer
-    @action(detail=True)
-    def aktyorlar(self,request,pk):  # kinolar/3/aktyorlar
-        aktor=Kino.objects.get(id=pk).aktyor_fk.all()
-        serializer=AkyorSerializer(aktor,many=True)
-        return Response(serializer.data)
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    ordering_fields = ('yil', )
+    search_fields=('nom',)
+
+    # @action(detail=True)
+    # def aktyorlar(self,request,pk):  # kinolar/3/aktyorlar
+    #     aktor=Kino.objects.get(id=pk).aktyor_fk.all()
+    #     serializer=AkyorSerializer(aktor,many=True)
+    #     return Response(serializer.data)
 
 class IzohModelViewSet(ModelViewSet):
     authentication_classes=[TokenAuthentication]
